@@ -65,25 +65,29 @@ taskList.addEventListener('click', (e) => {
 
 //adding Firebase to my main javascript file 
 import { initializeApp } from 'firebase/app';
-import { doc, getDocs, addDoc, updateDoc, getFirestore, collection } from
+import { getDocs, addDoc, getFirestore, collection } from
 "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
-  authDomain: "checklist-todo-app-a391c.firebaseapp.com",
-  projectId: "checklist-todo-app-a391c",
-  storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
-  messagingSenderId: "966273922595",
-  appId: "1:966273922595:web:2e57caac6005fb3ff52396",
-  measurementId: "G-LPN5SSNXGR"
-};
+    apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
+    authDomain: "checklist-todo-app-a391c.firebaseapp.com",
+    projectId: "checklist-todo-app-a391c",
+    storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
+    messagingSenderId: "966273922595",
+    appId: "1:966273922595:web:2e57caac6005fb3ff52396",
+    measurementId: "G-LPN5SSNXGR"
+  };
+  
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+  // Initialize Firestore
 const db = getFirestore(app);
 
 // Add Logging to my code 
