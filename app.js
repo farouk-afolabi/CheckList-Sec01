@@ -4,24 +4,48 @@ const taskList = document.getElementById('taskList');
 
 // Add Task
 addTaskBtn.addEventListener('click', async () => {
-    const task = taskInput.value.trim();
+    const task =  taskInput.value.trim(); 
     if (task) {
     const taskInput = document.getElementById("taskInput");
-    const taskText = taskInput.value.trim();
+    const taskText = sanitizeInput(taskInput.value.trim()); // Sanitize input
+   
     if (taskText) {
-    await addTaskToFirestore(taskText);
-    renderTasks();
-    taskInput.value = "";
+    await addTaskToFirestore(taskText); // Ensure task is added to Firestore before rendering
+    renderTasks();  // Refresh the task list
+    taskInput.value = ""; // Clear input field
     }
     renderTasks();
+    } else {
+        alert("Please enter a task!");
     }
    });
+
+   //Add task to firestore 
    async function addTaskToFirestore(taskText) {
     await addDoc(collection(db, "todos"), {
     text: taskText,
     completed: false
  });
+
+
+ // Add Task when Enter Key is Pressed in Input Field
+taskInput.addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        addTaskBtn.click();
+    }
+}); 
  }
+
+
+ // Complete Task on Keypress
+ taskList.addEventListener("keypress", async function(e) {
+    if (e.target.tagName === 'LI' && e.key === "Enter") {
+      await updateDoc(doc(db, "todos", e.target.id), {
+        completed: true
+      });  
+    }
+    renderTasks();
+  });
 
  //Retrieving the Todo-List
  async function renderTasks() {
@@ -33,10 +57,13 @@ addTaskBtn.addEventListener('click', async () => {
     const taskItem = document.createElement("li");
     taskItem.id = task.id;
     taskItem.textContent = task.data().text;
+    taskItem.tabIndex = 0; // Makes the task item focusable with the keyboard
     taskList.appendChild(taskItem);
     }
     });
     }
+
+    
    async function getTasksFromFirestore() {
     var data = await getDocs(collection(db, "todos"));
     let userData = [];
