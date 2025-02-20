@@ -4,6 +4,8 @@ import { initializeApp } from "firebase/app";
 import { getDoc, getDocs, addDoc, getFirestore, collection } from
 "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+ //Making an API Call to Chatbot Service 
+ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 
 //Your web app's Firebase configuration
@@ -146,8 +148,7 @@ function addTask(task) {
     }
    }
 
-   //Making an API Call to Chatbot Service 
-   import { GoogleGenerativeAI } from '@google/generative-ai';
+  
 
 //Call in the event listener for page load
 async function getApiKey() {
@@ -160,3 +161,70 @@ async function getApiKey() {
 async function askChatBot(request) {
   return await model.generateContent(request);
 }
+
+// Integrating chatbot with the Todo App
+
+// Function to add chatbot logic to recognize task-related commands
+function ruleChatBot(request) {
+    if (request.startsWith("add task")) {
+      let task = request.replace("add task", "").trim();
+      if (task) {
+          addTask(task);
+          appendMessage('Task ' + task + ' added!');
+      } else {
+          appendMessage("Please specify a task to add.");
+      }
+      return true;
+    } else if (request.startsWith("complete")) {
+        let taskName = request.replace("complete", "").trim();
+        if (taskName) {
+            if(removeFromTaskName(taskName)) {
+              appendMessage('Task ' + taskName + ' marked as complete.');
+            } else {
+              appendMessage("Task not found!");
+            }
+            
+        } else {
+            appendMessage("Please specify a task to complete.");
+        }
+        return true;
+    }
+  
+    return false;
+  }
+
+  // Add an event listener on the chatbot Send button that calls the chatbot rule function first, and if no rules are met, send the request to the chatbot API.
+
+  aiButton.addEventListener('click', async () => {
+    let prompt = aiInput.value.trim().toLowerCase();
+    if(prompt) {
+      if(!ruleChatBot(prompt)){
+        askChatBot(prompt);
+      }
+    } else {
+      appendMessage("Please enter a prompt")
+    }  
+  });
+
+//   The API code calls a function called appendMessage. This is a function created to add a message to the chat bot's history box. It also calls a function called removeFromTaskName that removes tasks based on the given name.
+//  If there are multiple tasks with the same name, all will be removed.
+
+function appendMessage(message) {
+    let history = document.createElement("div");
+    history.textContent = message;
+    history.className = 'history';
+    chatHistory.appendChild(history);
+    aiInput.value = "";
+  }
+  
+  function removeFromTaskName(task) {
+    let ele = document.getElementsByName(task);
+    if(ele.length == 0){
+      return false;
+    }
+    ele.forEach(e => {
+      removeTask(e.id);
+      removeVisualTask(e.id);
+    })
+    return true;
+  }
