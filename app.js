@@ -1,6 +1,35 @@
+
+//adding Firebase to my main javascript file 
+import { initializeApp } from "firebase/app";
+import { getDoc, getDocs, addDoc, getFirestore, collection } from
+"firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
+
+
+//Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+    apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
+    authDomain: "checklist-todo-app-a391c.firebaseapp.com",
+    projectId: "checklist-todo-app-a391c",
+    storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
+    messagingSenderId: "966273922595",
+    appId: "1:966273922595:web:2e57caac6005fb3ff52396",
+    measurementId: "G-LPN5SSNXGR"
+  };
+  
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  // Initialize Firestore
+const db = getFirestore(app);
+
 const taskInput = document.getElementById('taskInput');
 const addTaskBtn = document.getElementById('addTaskBtn');
 const taskList = document.getElementById('taskList');
+
+
 
 // Add Task
 addTaskBtn.addEventListener('click', async () => {
@@ -90,32 +119,10 @@ taskList.addEventListener('click', (e) => {
     }
 });
 
-//adding Firebase to my main javascript file 
-import { initializeApp } from 'firebase/app';
-import { getDocs, addDoc, getFirestore, collection } from
-"firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
 
 
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-    apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
-    authDomain: "checklist-todo-app-a391c.firebaseapp.com",
-    projectId: "checklist-todo-app-a391c",
-    storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
-    messagingSenderId: "966273922595",
-    appId: "1:966273922595:web:2e57caac6005fb3ff52396",
-    measurementId: "G-LPN5SSNXGR"
-  };
-  
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
 
-  // Initialize Firestore
-const db = getFirestore(app);
 
 // Add Logging to my code 
 import log from "loglevel";
@@ -138,3 +145,18 @@ function addTask(task) {
     log.error("Error adding task", error);
     }
    }
+
+   //Making an API Call to Chatbot Service 
+   import { GoogleGenerativeAI } from '@google/generative-ai';
+
+//Call in the event listener for page load
+async function getApiKey() {
+  let snapshot = await getDoc(doc(db, "apikey", "googlegenai"));
+  apiKey =  snapshot.data().key;
+  genAI = new GoogleGenerativeAI(apiKey);
+  model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+}
+
+async function askChatBot(request) {
+  return await model.generateContent(request);
+}

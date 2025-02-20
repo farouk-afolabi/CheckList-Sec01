@@ -596,14 +596,30 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 }
 
 },{}],"igcvL":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 //adding Firebase to my main javascript file 
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _app = require("firebase/app");
 var _firestore = require("firebase/firestore");
 var _analytics = require("firebase/analytics");
 // Add Logging to my code 
 var _loglevel = require("loglevel");
 var _loglevelDefault = parcelHelpers.interopDefault(_loglevel);
+//Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+    apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
+    authDomain: "checklist-todo-app-a391c.firebaseapp.com",
+    projectId: "checklist-todo-app-a391c",
+    storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
+    messagingSenderId: "966273922595",
+    appId: "1:966273922595:web:2e57caac6005fb3ff52396",
+    measurementId: "G-LPN5SSNXGR"
+};
+// Initialize Firebase
+const app = (0, _app.initializeApp)(firebaseConfig);
+const analytics = (0, _analytics.getAnalytics)(app);
+// Initialize Firestore
+const db = (0, _firestore.getFirestore)(app);
 const taskInput = document.getElementById('taskInput');
 const addTaskBtn = document.getElementById('addTaskBtn');
 const taskList = document.getElementById('taskList');
@@ -673,22 +689,6 @@ const taskText = sanitizeInput(taskInput.value.trim());
 taskList.addEventListener('click', (e)=>{
     if (e.target.tagName === 'LI') e.target.remove();
 });
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-    apiKey: "AIzaSyDOEH-lZXEK_lp9WFc1XNrR4Jr5rBbPzvI",
-    authDomain: "checklist-todo-app-a391c.firebaseapp.com",
-    projectId: "checklist-todo-app-a391c",
-    storageBucket: "checklist-todo-app-a391c.firebasestorage.app",
-    messagingSenderId: "966273922595",
-    appId: "1:966273922595:web:2e57caac6005fb3ff52396",
-    measurementId: "G-LPN5SSNXGR"
-};
-// Initialize Firebase
-const app = (0, _app.initializeApp)(firebaseConfig);
-const analytics = (0, _analytics.getAnalytics)(app);
-// Initialize Firestore
-const db = (0, _firestore.getFirestore)(app);
 // Set the log level (trace, debug, info, warn, error)
 (0, _loglevelDefault.default).setLevel("info");
 // Example logs
@@ -706,9 +706,278 @@ function addTask(task) {
         // Log error
         (0, _loglevelDefault.default).error("Error adding task", error);
     }
-}
+} //Making an API Call to Chatbot Service 
 
-},{"firebase/app":"aM3Fo","firebase/firestore":"8A4BC","firebase/analytics":"bSFRu","loglevel":"7kRFs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"aM3Fo":[function(require,module,exports,__globalThis) {
+},{"loglevel":"7kRFs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","firebase/app":"aM3Fo","firebase/firestore":"8A4BC","firebase/analytics":"bSFRu"}],"7kRFs":[function(require,module,exports,__globalThis) {
+/*
+* loglevel - https://github.com/pimterry/loglevel
+*
+* Copyright (c) 2013 Tim Perry
+* Licensed under the MIT license.
+*/ (function(root, definition) {
+    "use strict";
+    if (typeof define === 'function' && define.amd) define(definition);
+    else if (0, module.exports) module.exports = definition();
+    else root.log = definition();
+})(this, function() {
+    "use strict";
+    // Slightly dubious tricks to cut down minimized file size
+    var noop = function() {};
+    var undefinedType = "undefined";
+    var isIE = typeof window !== undefinedType && typeof window.navigator !== undefinedType && /Trident\/|MSIE /.test(window.navigator.userAgent);
+    var logMethods = [
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error"
+    ];
+    var _loggersByName = {};
+    var defaultLogger = null;
+    // Cross-browser bind equivalent that works at least back to IE6
+    function bindMethod(obj, methodName) {
+        var method = obj[methodName];
+        if (typeof method.bind === 'function') return method.bind(obj);
+        else try {
+            return Function.prototype.bind.call(method, obj);
+        } catch (e) {
+            // Missing bind shim or IE8 + Modernizr, fallback to wrapping
+            return function() {
+                return Function.prototype.apply.apply(method, [
+                    obj,
+                    arguments
+                ]);
+            };
+        }
+    }
+    // Trace() doesn't print the message in IE, so for that case we need to wrap it
+    function traceForIE() {
+        if (console.log) {
+            if (console.log.apply) console.log.apply(console, arguments);
+            else // In old IE, native console methods themselves don't have apply().
+            Function.prototype.apply.apply(console.log, [
+                console,
+                arguments
+            ]);
+        }
+        if (console.trace) console.trace();
+    }
+    // Build the best logging method possible for this env
+    // Wherever possible we want to bind, not wrap, to preserve stack traces
+    function realMethod(methodName) {
+        if (methodName === 'debug') methodName = 'log';
+        if (typeof console === undefinedType) return false; // No method possible, for now - fixed later by enableLoggingWhenConsoleArrives
+        else if (methodName === 'trace' && isIE) return traceForIE;
+        else if (console[methodName] !== undefined) return bindMethod(console, methodName);
+        else if (console.log !== undefined) return bindMethod(console, 'log');
+        else return noop;
+    }
+    // These private functions always need `this` to be set properly
+    function replaceLoggingMethods() {
+        /*jshint validthis:true */ var level = this.getLevel();
+        // Replace the actual methods.
+        for(var i = 0; i < logMethods.length; i++){
+            var methodName = logMethods[i];
+            this[methodName] = i < level ? noop : this.methodFactory(methodName, level, this.name);
+        }
+        // Define log.log as an alias for log.debug
+        this.log = this.debug;
+        // Return any important warnings.
+        if (typeof console === undefinedType && level < this.levels.SILENT) return "No console available for logging";
+    }
+    // In old IE versions, the console isn't present until you first open it.
+    // We build realMethod() replacements here that regenerate logging methods
+    function enableLoggingWhenConsoleArrives(methodName) {
+        return function() {
+            if (typeof console !== undefinedType) {
+                replaceLoggingMethods.call(this);
+                this[methodName].apply(this, arguments);
+            }
+        };
+    }
+    // By default, we use closely bound real methods wherever possible, and
+    // otherwise we wait for a console to appear, and then try again.
+    function defaultMethodFactory(methodName, _level, _loggerName) {
+        /*jshint validthis:true */ return realMethod(methodName) || enableLoggingWhenConsoleArrives.apply(this, arguments);
+    }
+    function Logger(name, factory) {
+        // Private instance variables.
+        var self = this;
+        /**
+       * The level inherited from a parent logger (or a global default). We
+       * cache this here rather than delegating to the parent so that it stays
+       * in sync with the actual logging methods that we have installed (the
+       * parent could change levels but we might not have rebuilt the loggers
+       * in this child yet).
+       * @type {number}
+       */ var inheritedLevel;
+        /**
+       * The default level for this logger, if any. If set, this overrides
+       * `inheritedLevel`.
+       * @type {number|null}
+       */ var defaultLevel;
+        /**
+       * A user-specific level for this logger. If set, this overrides
+       * `defaultLevel`.
+       * @type {number|null}
+       */ var userLevel;
+        var storageKey = "loglevel";
+        if (typeof name === "string") storageKey += ":" + name;
+        else if (typeof name === "symbol") storageKey = undefined;
+        function persistLevelIfPossible(levelNum) {
+            var levelName = (logMethods[levelNum] || 'silent').toUpperCase();
+            if (typeof window === undefinedType || !storageKey) return;
+            // Use localStorage if available
+            try {
+                window.localStorage[storageKey] = levelName;
+                return;
+            } catch (ignore) {}
+            // Use session cookie as fallback
+            try {
+                window.document.cookie = encodeURIComponent(storageKey) + "=" + levelName + ";";
+            } catch (ignore) {}
+        }
+        function getPersistedLevel() {
+            var storedLevel;
+            if (typeof window === undefinedType || !storageKey) return;
+            try {
+                storedLevel = window.localStorage[storageKey];
+            } catch (ignore) {}
+            // Fallback to cookies if local storage gives us nothing
+            if (typeof storedLevel === undefinedType) try {
+                var cookie = window.document.cookie;
+                var cookieName = encodeURIComponent(storageKey);
+                var location = cookie.indexOf(cookieName + "=");
+                if (location !== -1) storedLevel = /^([^;]+)/.exec(cookie.slice(location + cookieName.length + 1))[1];
+            } catch (ignore) {}
+            // If the stored level is not valid, treat it as if nothing was stored.
+            if (self.levels[storedLevel] === undefined) storedLevel = undefined;
+            return storedLevel;
+        }
+        function clearPersistedLevel() {
+            if (typeof window === undefinedType || !storageKey) return;
+            // Use localStorage if available
+            try {
+                window.localStorage.removeItem(storageKey);
+            } catch (ignore) {}
+            // Use session cookie as fallback
+            try {
+                window.document.cookie = encodeURIComponent(storageKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+            } catch (ignore) {}
+        }
+        function normalizeLevel(input) {
+            var level = input;
+            if (typeof level === "string" && self.levels[level.toUpperCase()] !== undefined) level = self.levels[level.toUpperCase()];
+            if (typeof level === "number" && level >= 0 && level <= self.levels.SILENT) return level;
+            else throw new TypeError("log.setLevel() called with invalid level: " + input);
+        }
+        /*
+       *
+       * Public logger API - see https://github.com/pimterry/loglevel for details
+       *
+       */ self.name = name;
+        self.levels = {
+            "TRACE": 0,
+            "DEBUG": 1,
+            "INFO": 2,
+            "WARN": 3,
+            "ERROR": 4,
+            "SILENT": 5
+        };
+        self.methodFactory = factory || defaultMethodFactory;
+        self.getLevel = function() {
+            if (userLevel != null) return userLevel;
+            else if (defaultLevel != null) return defaultLevel;
+            else return inheritedLevel;
+        };
+        self.setLevel = function(level, persist) {
+            userLevel = normalizeLevel(level);
+            if (persist !== false) persistLevelIfPossible(userLevel);
+            // NOTE: in v2, this should call rebuild(), which updates children.
+            return replaceLoggingMethods.call(self);
+        };
+        self.setDefaultLevel = function(level) {
+            defaultLevel = normalizeLevel(level);
+            if (!getPersistedLevel()) self.setLevel(level, false);
+        };
+        self.resetLevel = function() {
+            userLevel = null;
+            clearPersistedLevel();
+            replaceLoggingMethods.call(self);
+        };
+        self.enableAll = function(persist) {
+            self.setLevel(self.levels.TRACE, persist);
+        };
+        self.disableAll = function(persist) {
+            self.setLevel(self.levels.SILENT, persist);
+        };
+        self.rebuild = function() {
+            if (defaultLogger !== self) inheritedLevel = normalizeLevel(defaultLogger.getLevel());
+            replaceLoggingMethods.call(self);
+            if (defaultLogger === self) for(var childName in _loggersByName)_loggersByName[childName].rebuild();
+        };
+        // Initialize all the internal levels.
+        inheritedLevel = normalizeLevel(defaultLogger ? defaultLogger.getLevel() : "WARN");
+        var initialLevel = getPersistedLevel();
+        if (initialLevel != null) userLevel = normalizeLevel(initialLevel);
+        replaceLoggingMethods.call(self);
+    }
+    /*
+     *
+     * Top-level API
+     *
+     */ defaultLogger = new Logger();
+    defaultLogger.getLogger = function getLogger(name) {
+        if (typeof name !== "symbol" && typeof name !== "string" || name === "") throw new TypeError("You must supply a name when creating a logger.");
+        var logger = _loggersByName[name];
+        if (!logger) logger = _loggersByName[name] = new Logger(name, defaultLogger.methodFactory);
+        return logger;
+    };
+    // Grab the current global log variable in case of overwrite
+    var _log = typeof window !== undefinedType ? window.log : undefined;
+    defaultLogger.noConflict = function() {
+        if (typeof window !== undefinedType && window.log === defaultLogger) window.log = _log;
+        return defaultLogger;
+    };
+    defaultLogger.getLoggers = function getLoggers() {
+        return _loggersByName;
+    };
+    // ES6 default export, for compatibility
+    defaultLogger['default'] = defaultLogger;
+    return defaultLogger;
+});
+
+},{}],"gkKU3":[function(require,module,exports,__globalThis) {
+exports.interopDefault = function(a) {
+    return a && a.__esModule ? a : {
+        default: a
+    };
+};
+exports.defineInteropFlag = function(a) {
+    Object.defineProperty(a, '__esModule', {
+        value: true
+    });
+};
+exports.exportAll = function(source, dest) {
+    Object.keys(source).forEach(function(key) {
+        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
+        Object.defineProperty(dest, key, {
+            enumerable: true,
+            get: function() {
+                return source[key];
+            }
+        });
+    });
+    return dest;
+};
+exports.export = function(dest, destName, get) {
+    Object.defineProperty(dest, destName, {
+        enumerable: true,
+        get: get
+    });
+};
+
+},{}],"aM3Fo":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _app = require("@firebase/app");
@@ -4003,36 +4272,6 @@ process.chdir = function(dir) {
 };
 process.umask = function() {
     return 0;
-};
-
-},{}],"gkKU3":[function(require,module,exports,__globalThis) {
-exports.interopDefault = function(a) {
-    return a && a.__esModule ? a : {
-        default: a
-    };
-};
-exports.defineInteropFlag = function(a) {
-    Object.defineProperty(a, '__esModule', {
-        value: true
-    });
-};
-exports.exportAll = function(source, dest) {
-    Object.keys(source).forEach(function(key) {
-        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
-        Object.defineProperty(dest, key, {
-            enumerable: true,
-            get: function() {
-                return source[key];
-            }
-        });
-    });
-    return dest;
-};
-exports.export = function(dest, destName, get) {
-    Object.defineProperty(dest, destName, {
-        enumerable: true,
-        get: get
-    });
 };
 
 },{}],"fZmft":[function(require,module,exports,__globalThis) {
@@ -30884,245 +31123,6 @@ function registerInstallations() {
 // BUILD_TARGET will be replaced by values like esm2017, cjs2017, etc during the compilation
 (0, _app.registerVersion)(name, version, 'esm2017');
 
-},{"@firebase/app":"3AcPV","@firebase/component":"bi1VB","@firebase/util":"ePiK6","idb":"kozAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"7kRFs":[function(require,module,exports,__globalThis) {
-/*
-* loglevel - https://github.com/pimterry/loglevel
-*
-* Copyright (c) 2013 Tim Perry
-* Licensed under the MIT license.
-*/ (function(root, definition) {
-    "use strict";
-    if (typeof define === 'function' && define.amd) define(definition);
-    else if (0, module.exports) module.exports = definition();
-    else root.log = definition();
-})(this, function() {
-    "use strict";
-    // Slightly dubious tricks to cut down minimized file size
-    var noop = function() {};
-    var undefinedType = "undefined";
-    var isIE = typeof window !== undefinedType && typeof window.navigator !== undefinedType && /Trident\/|MSIE /.test(window.navigator.userAgent);
-    var logMethods = [
-        "trace",
-        "debug",
-        "info",
-        "warn",
-        "error"
-    ];
-    var _loggersByName = {};
-    var defaultLogger = null;
-    // Cross-browser bind equivalent that works at least back to IE6
-    function bindMethod(obj, methodName) {
-        var method = obj[methodName];
-        if (typeof method.bind === 'function') return method.bind(obj);
-        else try {
-            return Function.prototype.bind.call(method, obj);
-        } catch (e) {
-            // Missing bind shim or IE8 + Modernizr, fallback to wrapping
-            return function() {
-                return Function.prototype.apply.apply(method, [
-                    obj,
-                    arguments
-                ]);
-            };
-        }
-    }
-    // Trace() doesn't print the message in IE, so for that case we need to wrap it
-    function traceForIE() {
-        if (console.log) {
-            if (console.log.apply) console.log.apply(console, arguments);
-            else // In old IE, native console methods themselves don't have apply().
-            Function.prototype.apply.apply(console.log, [
-                console,
-                arguments
-            ]);
-        }
-        if (console.trace) console.trace();
-    }
-    // Build the best logging method possible for this env
-    // Wherever possible we want to bind, not wrap, to preserve stack traces
-    function realMethod(methodName) {
-        if (methodName === 'debug') methodName = 'log';
-        if (typeof console === undefinedType) return false; // No method possible, for now - fixed later by enableLoggingWhenConsoleArrives
-        else if (methodName === 'trace' && isIE) return traceForIE;
-        else if (console[methodName] !== undefined) return bindMethod(console, methodName);
-        else if (console.log !== undefined) return bindMethod(console, 'log');
-        else return noop;
-    }
-    // These private functions always need `this` to be set properly
-    function replaceLoggingMethods() {
-        /*jshint validthis:true */ var level = this.getLevel();
-        // Replace the actual methods.
-        for(var i = 0; i < logMethods.length; i++){
-            var methodName = logMethods[i];
-            this[methodName] = i < level ? noop : this.methodFactory(methodName, level, this.name);
-        }
-        // Define log.log as an alias for log.debug
-        this.log = this.debug;
-        // Return any important warnings.
-        if (typeof console === undefinedType && level < this.levels.SILENT) return "No console available for logging";
-    }
-    // In old IE versions, the console isn't present until you first open it.
-    // We build realMethod() replacements here that regenerate logging methods
-    function enableLoggingWhenConsoleArrives(methodName) {
-        return function() {
-            if (typeof console !== undefinedType) {
-                replaceLoggingMethods.call(this);
-                this[methodName].apply(this, arguments);
-            }
-        };
-    }
-    // By default, we use closely bound real methods wherever possible, and
-    // otherwise we wait for a console to appear, and then try again.
-    function defaultMethodFactory(methodName, _level, _loggerName) {
-        /*jshint validthis:true */ return realMethod(methodName) || enableLoggingWhenConsoleArrives.apply(this, arguments);
-    }
-    function Logger(name, factory) {
-        // Private instance variables.
-        var self = this;
-        /**
-       * The level inherited from a parent logger (or a global default). We
-       * cache this here rather than delegating to the parent so that it stays
-       * in sync with the actual logging methods that we have installed (the
-       * parent could change levels but we might not have rebuilt the loggers
-       * in this child yet).
-       * @type {number}
-       */ var inheritedLevel;
-        /**
-       * The default level for this logger, if any. If set, this overrides
-       * `inheritedLevel`.
-       * @type {number|null}
-       */ var defaultLevel;
-        /**
-       * A user-specific level for this logger. If set, this overrides
-       * `defaultLevel`.
-       * @type {number|null}
-       */ var userLevel;
-        var storageKey = "loglevel";
-        if (typeof name === "string") storageKey += ":" + name;
-        else if (typeof name === "symbol") storageKey = undefined;
-        function persistLevelIfPossible(levelNum) {
-            var levelName = (logMethods[levelNum] || 'silent').toUpperCase();
-            if (typeof window === undefinedType || !storageKey) return;
-            // Use localStorage if available
-            try {
-                window.localStorage[storageKey] = levelName;
-                return;
-            } catch (ignore) {}
-            // Use session cookie as fallback
-            try {
-                window.document.cookie = encodeURIComponent(storageKey) + "=" + levelName + ";";
-            } catch (ignore) {}
-        }
-        function getPersistedLevel() {
-            var storedLevel;
-            if (typeof window === undefinedType || !storageKey) return;
-            try {
-                storedLevel = window.localStorage[storageKey];
-            } catch (ignore) {}
-            // Fallback to cookies if local storage gives us nothing
-            if (typeof storedLevel === undefinedType) try {
-                var cookie = window.document.cookie;
-                var cookieName = encodeURIComponent(storageKey);
-                var location = cookie.indexOf(cookieName + "=");
-                if (location !== -1) storedLevel = /^([^;]+)/.exec(cookie.slice(location + cookieName.length + 1))[1];
-            } catch (ignore) {}
-            // If the stored level is not valid, treat it as if nothing was stored.
-            if (self.levels[storedLevel] === undefined) storedLevel = undefined;
-            return storedLevel;
-        }
-        function clearPersistedLevel() {
-            if (typeof window === undefinedType || !storageKey) return;
-            // Use localStorage if available
-            try {
-                window.localStorage.removeItem(storageKey);
-            } catch (ignore) {}
-            // Use session cookie as fallback
-            try {
-                window.document.cookie = encodeURIComponent(storageKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-            } catch (ignore) {}
-        }
-        function normalizeLevel(input) {
-            var level = input;
-            if (typeof level === "string" && self.levels[level.toUpperCase()] !== undefined) level = self.levels[level.toUpperCase()];
-            if (typeof level === "number" && level >= 0 && level <= self.levels.SILENT) return level;
-            else throw new TypeError("log.setLevel() called with invalid level: " + input);
-        }
-        /*
-       *
-       * Public logger API - see https://github.com/pimterry/loglevel for details
-       *
-       */ self.name = name;
-        self.levels = {
-            "TRACE": 0,
-            "DEBUG": 1,
-            "INFO": 2,
-            "WARN": 3,
-            "ERROR": 4,
-            "SILENT": 5
-        };
-        self.methodFactory = factory || defaultMethodFactory;
-        self.getLevel = function() {
-            if (userLevel != null) return userLevel;
-            else if (defaultLevel != null) return defaultLevel;
-            else return inheritedLevel;
-        };
-        self.setLevel = function(level, persist) {
-            userLevel = normalizeLevel(level);
-            if (persist !== false) persistLevelIfPossible(userLevel);
-            // NOTE: in v2, this should call rebuild(), which updates children.
-            return replaceLoggingMethods.call(self);
-        };
-        self.setDefaultLevel = function(level) {
-            defaultLevel = normalizeLevel(level);
-            if (!getPersistedLevel()) self.setLevel(level, false);
-        };
-        self.resetLevel = function() {
-            userLevel = null;
-            clearPersistedLevel();
-            replaceLoggingMethods.call(self);
-        };
-        self.enableAll = function(persist) {
-            self.setLevel(self.levels.TRACE, persist);
-        };
-        self.disableAll = function(persist) {
-            self.setLevel(self.levels.SILENT, persist);
-        };
-        self.rebuild = function() {
-            if (defaultLogger !== self) inheritedLevel = normalizeLevel(defaultLogger.getLevel());
-            replaceLoggingMethods.call(self);
-            if (defaultLogger === self) for(var childName in _loggersByName)_loggersByName[childName].rebuild();
-        };
-        // Initialize all the internal levels.
-        inheritedLevel = normalizeLevel(defaultLogger ? defaultLogger.getLevel() : "WARN");
-        var initialLevel = getPersistedLevel();
-        if (initialLevel != null) userLevel = normalizeLevel(initialLevel);
-        replaceLoggingMethods.call(self);
-    }
-    /*
-     *
-     * Top-level API
-     *
-     */ defaultLogger = new Logger();
-    defaultLogger.getLogger = function getLogger(name) {
-        if (typeof name !== "symbol" && typeof name !== "string" || name === "") throw new TypeError("You must supply a name when creating a logger.");
-        var logger = _loggersByName[name];
-        if (!logger) logger = _loggersByName[name] = new Logger(name, defaultLogger.methodFactory);
-        return logger;
-    };
-    // Grab the current global log variable in case of overwrite
-    var _log = typeof window !== undefinedType ? window.log : undefined;
-    defaultLogger.noConflict = function() {
-        if (typeof window !== undefinedType && window.log === defaultLogger) window.log = _log;
-        return defaultLogger;
-    };
-    defaultLogger.getLoggers = function getLoggers() {
-        return _loggersByName;
-    };
-    // ES6 default export, for compatibility
-    defaultLogger['default'] = defaultLogger;
-    return defaultLogger;
-});
-
-},{}]},["eCF1U","igcvL"], "igcvL", "parcelRequire94c2")
+},{"@firebase/app":"3AcPV","@firebase/component":"bi1VB","@firebase/util":"ePiK6","idb":"kozAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["eCF1U","igcvL"], "igcvL", "parcelRequire94c2")
 
 //# sourceMappingURL=index.5baa4167.js.map
